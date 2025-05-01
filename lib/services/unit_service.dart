@@ -14,12 +14,9 @@ class UnitService {
     return response.map<Unit>((json) => Unit.fromJson(json)).toList();
   }
 
-  Future<Unit> getUnitById(String id) async {
-    final response = await _supabaseClient
-        .from('unidades')
-        .select()
-        .eq('id', id)
-        .single();
+  Future<Unit> getUnitById(int id) async {
+    final response =
+        await _supabaseClient.from('unidades').select().eq('id', id).single();
     return Unit.fromJson(response);
   }
 

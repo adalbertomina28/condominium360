@@ -21,10 +21,7 @@ class AppRouter {
       ),
       GoRoute(
         path: '/reservations',
-        builder: (context, state) => Scaffold(
-          appBar: AppBar(title: const Text('Reservas')),
-          body: const Center(child: Text('Pantalla de Reservas - En desarrollo')),
-        ),
+        builder: (context, state) => const ReservationScreen(),
       ),
       GoRoute(
         path: '/support',

@@ -1,8 +1,8 @@
 class Unit {
-  final String id;
+  final int id;
   final String apartmentNumber;
   final String floor;
-  final String condominiumId;
+  final int condominiumId;
 
   Unit({
     required this.id,
@@ -30,10 +30,10 @@ class Unit {
   }
 
   Unit copyWith({
-    String? id,
+    int? id,
     String? apartmentNumber,
     String? floor,
-    String? condominiumId,
+    int? condominiumId,
   }) {
     return Unit(
       id: id ?? this.id,

@@ -6,15 +6,18 @@ class CommonAreaService {
 
   CommonAreaService(this._supabaseClient);
 
-  Future<List<CommonArea>> getCommonAreasByCondominiumId(String condominiumId) async {
+  Future<List<CommonArea>> getCommonAreasByCondominiumId(
+      int condominiumId) async {
     final response = await _supabaseClient
         .from('areas_comunes')
         .select()
         .eq('condominio_id', condominiumId);
-    return response.map<CommonArea>((json) => CommonArea.fromJson(json)).toList();
+    return response
+        .map<CommonArea>((json) => CommonArea.fromJson(json))
+        .toList();
   }
 
-  Future<CommonArea> getCommonAreaById(String id) async {
+  Future<CommonArea> getCommonAreaById(int id) async {
     final response = await _supabaseClient
         .from('areas_comunes')
         .select()

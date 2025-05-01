@@ -1,8 +1,8 @@
 class CommonArea {
-  final String id;
+  final int id;
   final String name;
   final String description;
-  final String condominiumId;
+  final int condominiumId;
 
   CommonArea({
     required this.id,
@@ -30,10 +30,10 @@ class CommonArea {
   }
 
   CommonArea copyWith({
-    String? id,
+    int? id,
     String? name,
     String? description,
-    String? condominiumId,
+    int? condominiumId,
   }) {
     return CommonArea(
       id: id ?? this.id,

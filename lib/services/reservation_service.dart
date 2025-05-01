@@ -6,29 +6,35 @@ class ReservationService {
 
   ReservationService(this._supabaseClient);
 
-  Future<List<Reservation>> getReservationsByUnitId(String unitId) async {
-    final response = await _supabaseClient
-        .from('reservas')
-        .select()
-        .eq('unidad_id', unitId);
-    return response.map<Reservation>((json) => Reservation.fromJson(json)).toList();
+  Future<List<Reservation>> getReservationsByUnitId(int unitId) async {
+    final response =
+        await _supabaseClient.from('reservas').select().eq('unidad_id', unitId);
+    return response
+        .map<Reservation>((json) => Reservation.fromJson(json))
+        .toList();
   }
 
-  Future<List<Reservation>> getReservationsByCommonAreaId(String commonAreaId) async {
+  Future<List<Reservation>> getReservationsByCommonAreaId(
+      int commonAreaId) async {
     final response = await _supabaseClient
         .from('reservas')
         .select()
         .eq('area_comun_id', commonAreaId);
-    return response.map<Reservation>((json) => Reservation.fromJson(json)).toList();
+    return response
+        .map<Reservation>((json) => Reservation.fromJson(json))
+        .toList();
   }
 
-  Future<List<Reservation>> getReservationsByDateRange(DateTime startDate, DateTime endDate) async {
+  Future<List<Reservation>> getReservationsByDateRange(
+      DateTime startDate, DateTime endDate) async {
     final response = await _supabaseClient
         .from('reservas')
         .select()
         .gte('fecha_inicio', startDate.toIso8601String())
         .lte('fecha_fin', endDate.toIso8601String());
-    return response.map<Reservation>((json) => Reservation.fromJson(json)).toList();
+    return response
+        .map<Reservation>((json) => Reservation.fromJson(json))
+        .toList();
   }
 
   Future<Reservation> createReservation(Reservation reservation) async {
@@ -41,7 +47,8 @@ class ReservationService {
         .eq('estado', 'aprobada');
 
     if (conflicts.isNotEmpty) {
-      throw Exception('Ya existe una reserva para esta área común en el horario seleccionado');
+      throw Exception(
+          'Ya existe una reserva para esta área común en el horario seleccionado');
     }
 
     final response = await _supabaseClient

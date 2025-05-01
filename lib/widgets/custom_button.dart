@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class CustomButton extends StatelessWidget {
   final String text;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
   final bool isLoading;
   final bool isOutlined;
   final Color? color;
@@ -24,7 +24,7 @@ class CustomButton extends StatelessWidget {
     
     if (isOutlined) {
       return OutlinedButton(
-        onPressed: isLoading ? null : onPressed,
+        onPressed: isLoading || onPressed == null ? null : onPressed,
         style: OutlinedButton.styleFrom(
           side: BorderSide(color: buttonColor),
           shape: RoundedRectangleBorder(
@@ -37,7 +37,7 @@ class CustomButton extends StatelessWidget {
     }
     
     return ElevatedButton(
-      onPressed: isLoading ? null : onPressed,
+      onPressed: isLoading || onPressed == null ? null : onPressed,
       style: ElevatedButton.styleFrom(
         backgroundColor: buttonColor,
         shape: RoundedRectangleBorder(

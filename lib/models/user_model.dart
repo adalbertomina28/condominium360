@@ -6,7 +6,7 @@ class User {
   final String email;
   final String role; // admin, residente
   final String phone;
-  final String? unitId;
+  final int? unitId;
 
   User({
     String? id,
@@ -45,7 +45,7 @@ class User {
     String? email,
     String? role,
     String? phone,
-    String? unitId,
+    int? unitId,
   }) {
     return User(
       id: id ?? this.id,

@@ -1,7 +1,7 @@
 class Reservation {
-  final String id;
-  final String unitId;
-  final String commonAreaId;
+  final int id;
+  final int unitId;
+  final int commonAreaId;
   final DateTime startDate;
   final DateTime endDate;
   final String status; // pendiente/aprobada
@@ -27,20 +27,27 @@ class Reservation {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'id': id,
+    // Crear un mapa base sin el ID
+    final Map<String, dynamic> json = {
       'unidad_id': unitId,
       'area_comun_id': commonAreaId,
       'fecha_inicio': startDate.toIso8601String(),
       'fecha_fin': endDate.toIso8601String(),
       'estado': status,
     };
+
+    // Solo incluir el ID si no es 0 (para actualizaciones)
+    if (id != 0) {
+      json['id'] = id;
+    }
+
+    return json;
   }
 
   Reservation copyWith({
-    String? id,
-    String? unitId,
-    String? commonAreaId,
+    int? id,
+    int? unitId,
+    int? commonAreaId,
     DateTime? startDate,
     DateTime? endDate,
     String? status,

@@ -6,28 +6,21 @@ class PaymentService {
 
   PaymentService(this._supabaseClient);
 
-  Future<List<Payment>> getPaymentsByUnitId(String unitId) async {
-    final response = await _supabaseClient
-        .from('pagos')
-        .select()
-        .eq('unidad_id', unitId);
+  Future<List<Payment>> getPaymentsByUnitId(int unitId) async {
+    final response =
+        await _supabaseClient.from('pagos').select().eq('unidad_id', unitId);
     return response.map<Payment>((json) => Payment.fromJson(json)).toList();
   }
 
   Future<List<Payment>> getPaymentsByStatus(String status) async {
-    final response = await _supabaseClient
-        .from('pagos')
-        .select()
-        .eq('estado', status);
+    final response =
+        await _supabaseClient.from('pagos').select().eq('estado', status);
     return response.map<Payment>((json) => Payment.fromJson(json)).toList();
   }
 
   Future<Payment> getPaymentById(String id) async {
-    final response = await _supabaseClient
-        .from('pagos')
-        .select()
-        .eq('id', id)
-        .single();
+    final response =
+        await _supabaseClient.from('pagos').select().eq('id', id).single();
     return Payment.fromJson(response);
   }
 
