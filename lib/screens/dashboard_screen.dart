@@ -76,7 +76,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Condominium 360°'),
+        title: Row(
+          children: [
+            const Text('Condominium 360°'),
+            if (_currentUser?.role == 'admin')
+              Container(
+                margin: const EdgeInsets.only(left: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade700,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Text(
+                  'ADMIN',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+          ],
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -122,12 +143,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       fontSize: 18,
                     ),
                   ),
-                  Text(
-                    _currentUser?.email ?? '',
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 14,
-                    ),
+                  Row(
+                    children: [
+                      Text(
+                        _currentUser?.email ?? '',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(width: 5),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: _currentUser?.role == 'admin' ? Colors.red.shade700 : Colors.green.shade700,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          _currentUser?.role == 'admin' ? 'Admin' : 'Residente',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -140,39 +181,79 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 context.pop();
               },
             ),
-            ListTile(
-              leading: const Icon(Icons.calendar_today),
-              title: const Text('Reservar área'),
-              onTap: () {
-                context.pop();
-                context.push('/reservations');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.support),
-              title: const Text('Soporte'),
-              onTap: () {
-                context.pop();
-                context.push('/support');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.forum),
-              title: const Text('Comunidad'),
-              onTap: () {
-                context.pop();
-                context.push('/community');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.payment),
-              title: const Text('Pagos'),
-              onTap: () {
-                context.pop();
-                context.push('/payments');
-              },
-            ),
-            const Divider(),
+            
+            // Opciones para residentes
+            if (_currentUser?.role != 'admin') ...[
+              ListTile(
+                leading: const Icon(Icons.calendar_today),
+                title: const Text('Reservar área'),
+                onTap: () {
+                  context.pop();
+                  context.push('/reservations');
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.support_agent),
+                title: const Text('Soporte'),
+                onTap: () {
+                  context.pop();
+                  context.push('/support');
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.people),
+                title: const Text('Comunidad'),
+                onTap: () {
+                  context.pop();
+                  context.push('/community');
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.payment),
+                title: const Text('Pagos'),
+                onTap: () {
+                  context.pop();
+                  context.push('/payments');
+                },
+              ),
+            ],
+            
+            // Opciones exclusivas para administradores
+            if (_currentUser?.role == 'admin') ...[
+              ListTile(
+                leading: const Icon(Icons.approval),
+                title: const Text('Aprobar Reservas'),
+                onTap: () {
+                  context.pop();
+                  context.push('/admin/reservations');
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.people_alt),
+                title: const Text('Gestionar Residentes'),
+                onTap: () {
+                  context.pop();
+                  context.push('/admin/residents');
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.announcement),
+                title: const Text('Publicar Anuncios'),
+                onTap: () {
+                  context.pop();
+                  context.push('/admin/announcements');
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.payments),
+                title: const Text('Gestionar Pagos'),
+                onTap: () {
+                  context.pop();
+                  context.push('/admin/payments');
+                },
+              ),
+            ],
+            
             ListTile(
               leading: const Icon(Icons.settings),
               title: const Text('Configuración'),
@@ -213,9 +294,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               ),
                             ),
                             const SizedBox(height: 8),
-                            const Text(
-                              'Aquí tienes un resumen de tu actividad reciente.',
-                              style: TextStyle(
+                            Text(
+                              _currentUser?.role == 'admin' 
+                                ? 'Panel de administración del condominio.'
+                                : 'Aquí tienes un resumen de tu actividad reciente.',
+                              style: const TextStyle(
                                 fontSize: 14,
                                 color: Colors.grey,
                               ),
@@ -225,69 +308,151 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                     ),
                     const SizedBox(height: 24),
-
-                    // Pagos pendientes
-                    _buildSectionTitle('Pagos pendientes', Icons.payment),
-                    const SizedBox(height: 8),
-                    _pendingPayments.isEmpty
-                        ? _buildEmptyState('No tienes pagos pendientes')
-                        : Column(
-                            children: _pendingPayments
-                                .map((payment) => _buildPaymentCard(payment))
-                                .toList(),
+                    
+                    // Contenido específico para administradores
+                    if (_currentUser?.role == 'admin') ...[  
+                      _buildSectionTitle('Reservas pendientes de aprobación', Icons.approval),
+                      Card(
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Tienes 3 reservas pendientes de aprobación'),
+                              const SizedBox(height: 16),
+                              CustomButton(
+                                text: 'Ver reservas pendientes',
+                                icon: Icons.arrow_forward,
+                                onPressed: () {
+                                  context.push('/admin/reservations');
+                                },
+                              ),
+                            ],
                           ),
-                    const SizedBox(height: 16),
-                    CustomButton(
-                      text: 'Ver todos los pagos',
-                      isOutlined: true,
-                      icon: Icons.arrow_forward,
-                      onPressed: () {
-                        context.push('/payments');
-                      },
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Próximas reservas
-                    _buildSectionTitle('Próximas reservas', Icons.calendar_today),
-                    const SizedBox(height: 8),
-                    _upcomingReservations.isEmpty
-                        ? _buildEmptyState('No tienes reservas próximas')
-                        : Column(
-                            children: _upcomingReservations
-                                .map((reservation) => _buildReservationCard(reservation))
-                                .toList(),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      
+                      _buildSectionTitle('Residentes activos', Icons.people),
+                      Card(
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('12 residentes registrados en el sistema'),
+                              const SizedBox(height: 16),
+                              CustomButton(
+                                text: 'Gestionar residentes',
+                                icon: Icons.arrow_forward,
+                                onPressed: () {
+                                  context.push('/admin/residents');
+                                },
+                              ),
+                            ],
                           ),
-                    const SizedBox(height: 16),
-                    CustomButton(
-                      text: 'Reservar área común',
-                      isOutlined: true,
-                      icon: Icons.add,
-                      onPressed: () {
-                        context.push('/reservations');
-                      },
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Últimos avisos
-                    _buildSectionTitle('Últimos avisos', Icons.announcement),
-                    const SizedBox(height: 8),
-                    _latestPosts.isEmpty
-                        ? _buildEmptyState('No hay avisos recientes')
-                        : Column(
-                            children: _latestPosts
-                                .map((post) => _buildPostCard(post))
-                                .toList(),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      
+                      _buildSectionTitle('Anuncios recientes', Icons.announcement),
+                      Card(
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Último anuncio publicado hace 3 días'),
+                              const SizedBox(height: 16),
+                              CustomButton(
+                                text: 'Publicar nuevo anuncio',
+                                icon: Icons.arrow_forward,
+                                onPressed: () {
+                                  context.push('/admin/announcements');
+                                },
+                              ),
+                            ],
                           ),
-                    const SizedBox(height: 16),
-                    CustomButton(
-                      text: 'Ver todos los avisos',
-                      isOutlined: true,
-                      icon: Icons.arrow_forward,
-                      onPressed: () {
-                        context.push('/community');
-                      },
-                    ),
-                    const SizedBox(height: 24),
+                        ),
+                      ),
+                    ],
+                    
+                    // Contenido específico para residentes
+                    if (_currentUser?.role != 'admin') ...[  
+                      // Pagos pendientes
+                      _buildSectionTitle('Pagos pendientes', Icons.payment),
+                      const SizedBox(height: 8),
+                      _pendingPayments.isEmpty
+                          ? _buildEmptyState('No tienes pagos pendientes')
+                          : Column(
+                              children: _pendingPayments
+                                  .map((payment) => _buildPaymentCard(payment))
+                                  .toList(),
+                            ),
+                      const SizedBox(height: 16),
+                      CustomButton(
+                        text: 'Ver todos los pagos',
+                        isOutlined: true,
+                        icon: Icons.arrow_forward,
+                        onPressed: () {
+                          context.push('/payments');
+                        },
+                      ),
+                      const SizedBox(height: 24),
+
+                      _buildSectionTitle('Próximas reservas', Icons.calendar_today),
+                      const SizedBox(height: 8),
+                      _upcomingReservations.isEmpty
+                          ? _buildEmptyState('No tienes reservas próximas')
+                          : Column(
+                              children: _upcomingReservations
+                                  .map((reservation) => _buildReservationCard(reservation))
+                                  .toList(),
+                            ),
+                      const SizedBox(height: 16),
+                      CustomButton(
+                        text: 'Reservar área común',
+                        isOutlined: true,
+                        icon: Icons.add,
+                        onPressed: () {
+                          context.push('/reservations');
+                        },
+                      ),
+                      const SizedBox(height: 24),
+
+                      _buildSectionTitle('Últimos anuncios', Icons.announcement),
+                      const SizedBox(height: 8),
+                      _latestPosts.isEmpty
+                          ? _buildEmptyState('No hay anuncios recientes')
+                          : Column(
+                              children: _latestPosts
+                                  .map((post) => _buildPostCard(post))
+                                  .toList(),
+                            ),
+                      const SizedBox(height: 16),
+                      CustomButton(
+                        text: 'Ver todos los avisos',
+                        isOutlined: true,
+                        icon: Icons.arrow_forward,
+                        onPressed: () {
+                          context.push('/community');
+                        },
+                      ),
+                      const SizedBox(height: 24),
+                    // Cierre del if para residentes
+                    ],
                   ],
                 ),
               ),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../screens/screens.dart';
+import '../screens/community_screen.dart';
+import '../screens/admin/announcement_screen.dart';
 import '../services/services.dart';
 
 class AppRouter {
@@ -32,10 +34,7 @@ class AppRouter {
       ),
       GoRoute(
         path: '/community',
-        builder: (context, state) => Scaffold(
-          appBar: AppBar(title: const Text('Comunidad')),
-          body: const Center(child: Text('Pantalla de Comunidad - En desarrollo')),
-        ),
+        builder: (context, state) => const CommunityScreen(),
       ),
       GoRoute(
         path: '/payments',
@@ -56,6 +55,33 @@ class AppRouter {
         builder: (context, state) => Scaffold(
           appBar: AppBar(title: const Text('Recuperar Contraseña')),
           body: const Center(child: Text('Pantalla de Recuperación de Contraseña - En desarrollo')),
+        ),
+      ),
+      
+      // Rutas de administrador
+      GoRoute(
+        path: '/admin/reservations',
+        builder: (context, state) => Scaffold(
+          appBar: AppBar(title: const Text('Aprobar Reservas')),
+          body: const Center(child: Text('Pantalla de Aprobación de Reservas - En desarrollo')),
+        ),
+      ),
+      GoRoute(
+        path: '/admin/residents',
+        builder: (context, state) => Scaffold(
+          appBar: AppBar(title: const Text('Gestionar Residentes')),
+          body: const Center(child: Text('Pantalla de Gestión de Residentes - En desarrollo')),
+        ),
+      ),
+      GoRoute(
+        path: '/admin/announcements',
+        builder: (context, state) => const AdminAnnouncementScreen(),
+      ),
+      GoRoute(
+        path: '/admin/payments',
+        builder: (context, state) => Scaffold(
+          appBar: AppBar(title: const Text('Gestionar Pagos')),
+          body: const Center(child: Text('Pantalla de Gestión de Pagos - En desarrollo')),
         ),
       ),
     ],

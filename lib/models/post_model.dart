@@ -1,5 +1,5 @@
 class Post {
-  final String id;
+  final int id;
   final String title;
   final String content;
   final String authorId;
@@ -27,18 +27,25 @@ class Post {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'id': id,
+    // Si el ID es 0, lo omitimos para que la base de datos lo genere automáticamente
+    final json = <String, dynamic>{
       'titulo': title,
       'contenido': content,
       'autor_id': authorId,
       'fecha': date.toIso8601String(),
       'tipo': type,
     };
+
+    // Solo incluimos el ID si no es 0 (es decir, si estamos actualizando un post existente)
+    if (id != 0) {
+      json['id'] = id;
+    }
+
+    return json;
   }
 
   Post copyWith({
-    String? id,
+    int? id,
     String? title,
     String? content,
     String? authorId,

@@ -51,7 +51,7 @@ class PostService {
     return Post.fromJson(response);
   }
 
-  Future<void> deletePost(String id) async {
+  Future<void> deletePost(int id) async {
     await _supabaseClient.from('publicaciones').delete().eq('id', id);
   }
 }
