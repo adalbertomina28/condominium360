@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../screens/screens.dart';
 import '../screens/community_screen.dart';
 import '../screens/admin/announcement_screen.dart';
+import '../screens/user_settings_screen.dart';
 import '../services/services.dart';
+import '../services/auth_service.dart';
 
 class AppRouter {
   static final GoRouter router = GoRouter(
@@ -45,10 +48,12 @@ class AppRouter {
       ),
       GoRoute(
         path: '/settings',
-        builder: (context, state) => Scaffold(
-          appBar: AppBar(title: const Text('Configuración')),
-          body: const Center(child: Text('Pantalla de Configuración - En desarrollo')),
-        ),
+        builder: (context, state) {
+          // Obtener el cliente de Supabase del contexto o crear uno nuevo
+          final supabaseClient = Supabase.instance.client;
+          final authService = AuthService(supabaseClient);
+          return UserSettingsScreen(authService: authService);
+        },
       ),
       GoRoute(
         path: '/forgot-password',
@@ -56,6 +61,15 @@ class AppRouter {
           appBar: AppBar(title: const Text('Recuperar Contraseña')),
           body: const Center(child: Text('Pantalla de Recuperación de Contraseña - En desarrollo')),
         ),
+      ),
+      GoRoute(
+        path: '/user-settings',
+        builder: (context, state) {
+          // Obtener el cliente de Supabase del contexto o crear uno nuevo
+          final supabaseClient = Supabase.instance.client;
+          final authService = AuthService(supabaseClient);
+          return UserSettingsScreen(authService: authService);
+        },
       ),
       
       // Rutas de administrador
