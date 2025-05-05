@@ -7,3 +7,4 @@ export 'support_ticket_service.dart';
 export 'payment_service.dart';
 export 'post_service.dart';
 export 'supabase_service.dart';
+export 'area_schedule_service.dart';

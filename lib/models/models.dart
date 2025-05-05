@@ -6,3 +6,5 @@ export 'common_area_model.dart';
 export 'support_ticket_model.dart';
 export 'payment_model.dart';
 export 'post_model.dart';
+export 'area_schedule_model.dart';
+export 'area_capacity_model.dart';

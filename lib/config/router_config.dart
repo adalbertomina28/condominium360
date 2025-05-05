@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../screens/screens.dart';
 import '../screens/community_screen.dart';
 import '../screens/admin/announcement_screen.dart';
+import '../screens/reservation_schedule_screen.dart';
 import '../services/services.dart';
 
 class AppRouter {
@@ -20,6 +21,10 @@ class AppRouter {
       GoRoute(
         path: '/dashboard',
         builder: (context, state) => const DashboardScreen(),
+      ),
+      GoRoute(
+        path: '/reservation',
+        builder: (context, state) => const ReservationScheduleScreen(),
       ),
       GoRoute(
         path: '/reservations',

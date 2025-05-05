@@ -189,7 +189,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 title: const Text('Reservar área'),
                 onTap: () {
                   context.pop();
-                  context.push('/reservations');
+                  context.push('/reservation');
                 },
               ),
               ListTile(

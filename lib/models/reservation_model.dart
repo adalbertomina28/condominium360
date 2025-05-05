@@ -5,6 +5,7 @@ class Reservation {
   final DateTime startDate;
   final DateTime endDate;
   final String status; // pendiente/aprobada
+  final int people; // Número de personas
 
   Reservation({
     required this.id,
@@ -13,6 +14,7 @@ class Reservation {
     required this.startDate,
     required this.endDate,
     required this.status,
+    this.people = 1,
   });
 
   factory Reservation.fromJson(Map<String, dynamic> json) {
@@ -23,6 +25,7 @@ class Reservation {
       startDate: DateTime.parse(json['fecha_inicio']),
       endDate: DateTime.parse(json['fecha_fin']),
       status: json['estado'],
+      people: json['personas'] ?? 1,
     );
   }
 
@@ -34,6 +37,7 @@ class Reservation {
       'fecha_inicio': startDate.toIso8601String(),
       'fecha_fin': endDate.toIso8601String(),
       'estado': status,
+      'personas': people,
     };
 
     // Solo incluir el ID si no es 0 (para actualizaciones)
@@ -51,6 +55,7 @@ class Reservation {
     DateTime? startDate,
     DateTime? endDate,
     String? status,
+    int? people,
   }) {
     return Reservation(
       id: id ?? this.id,
@@ -59,6 +64,7 @@ class Reservation {
       startDate: startDate ?? this.startDate,
       endDate: endDate ?? this.endDate,
       status: status ?? this.status,
+      people: people ?? this.people,
     );
   }
 }
