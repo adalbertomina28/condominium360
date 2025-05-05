@@ -85,4 +85,22 @@ class AuthService {
       UserAttributes(password: newPassword),
     );
   }
+
+  Future<void> updateUser(User user) async {
+    try {
+      await _supabaseClient
+          .from('usuarios')
+          .update({
+            'nombre': user.name,
+            'email': user.email,
+            'telefono': user.phone,
+          })
+          .eq('id', user.id);
+      
+      // Si llegamos aquí, la actualización fue exitosa
+    } catch (e) {
+      // Capturar cualquier error y relanzarlo con un mensaje más descriptivo
+      throw Exception('Error al actualizar el usuario: ${e.toString()}');
+    }
+  }
 }
