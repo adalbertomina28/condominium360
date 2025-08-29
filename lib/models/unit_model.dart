@@ -2,7 +2,7 @@ class Unit {
   final int id;
   final String apartmentNumber;
   final String floor;
-  final int condominiumId;
+  final String condominiumId;
 
   Unit({
     required this.id,
@@ -16,7 +16,7 @@ class Unit {
       id: json['id'],
       apartmentNumber: json['numero_apto'],
       floor: json['piso'],
-      condominiumId: json['condominio_id'],
+      condominiumId: json['condominio_id'].toString(),
     );
   }
 
@@ -33,7 +33,7 @@ class Unit {
     int? id,
     String? apartmentNumber,
     String? floor,
-    int? condominiumId,
+    String? condominiumId,
   }) {
     return Unit(
       id: id ?? this.id,

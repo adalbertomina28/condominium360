@@ -7,7 +7,7 @@ class CommonAreaService {
   CommonAreaService(this._supabaseClient);
 
   Future<List<CommonArea>> getCommonAreasByCondominiumId(
-      int condominiumId) async {
+      String condominiumId) async {
     final response = await _supabaseClient
         .from('areas_comunes')
         .select()

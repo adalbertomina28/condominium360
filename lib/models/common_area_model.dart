@@ -2,7 +2,7 @@ class CommonArea {
   final int id;
   final String name;
   final String description;
-  final int condominiumId;
+  final String condominiumId;
 
   CommonArea({
     required this.id,
@@ -16,7 +16,7 @@ class CommonArea {
       id: json['id'],
       name: json['nombre'],
       description: json['descripcion'],
-      condominiumId: json['condominio_id'],
+      condominiumId: json['condominio_id'].toString(),
     );
   }
 
@@ -33,7 +33,7 @@ class CommonArea {
     int? id,
     String? name,
     String? description,
-    int? condominiumId,
+    String? condominiumId,
   }) {
     return CommonArea(
       id: id ?? this.id,
