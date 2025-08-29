@@ -16,14 +16,17 @@ class _ReservationScreenState extends State<ReservationScreen> {
   final CalendarFormat _calendarFormat = CalendarFormat.month;
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
-  TimeOfDay _startTime = TimeOfDay.now();
-  TimeOfDay _endTime =
-      TimeOfDay.now().replacing(hour: TimeOfDay.now().hour + 1);
   CommonArea? _selectedArea;
   List<CommonArea> _commonAreas = [];
   List<Reservation> _existingReservations = [];
+  List<AreaSchedule> _availableSchedules = [];
+  AreaSchedule? _selectedSchedule;
+  int _selectedPeople = 1;
   bool _isLoading = true;
   String? _errorMessage;
+  User? _currentUser;
+  Unit? _userUnit;
+  AreaCapacity? _areaCapacity;
 
   @override
   void initState() {
@@ -39,30 +42,31 @@ class _ReservationScreenState extends State<ReservationScreen> {
     });
 
     try {
-      // Cargar áreas comunes
-      final commonAreaService = CommonAreaService(SupabaseService.client);
       final authService = AuthService(SupabaseService.client);
-      final user = await authService.getCurrentUser();
+      final commonAreaService = CommonAreaService(SupabaseService.client);
+      final unitService = UnitService(SupabaseService.client);
 
-      if (user == null || user.unitId == null) {
+      // Cargar usuario actual
+      _currentUser = await authService.getCurrentUser();
+      if (_currentUser == null || _currentUser!.unitId == null) {
         setState(() {
-          _errorMessage =
-              'Debes estar asociado a una unidad para hacer reservas';
+          _errorMessage = 'Debes estar asociado a una unidad para hacer reservas';
         });
         return;
       }
 
-      // Obtener el condominio de la unidad
-      final unitService = UnitService(SupabaseService.client);
-      final unit = await unitService.getUnitById(user.unitId!);
+      // Cargar unidad del usuario
+      _userUnit = await unitService.getUnitById(_currentUser!.unitId!);
 
       // Cargar áreas comunes del condominio
       _commonAreas = await commonAreaService
-          .getCommonAreasByCondominiumId(unit.condominiumId);
+          .getCommonAreasByCondominiumId(_userUnit!.condominiumId);
 
       if (_commonAreas.isNotEmpty) {
         _selectedArea = _commonAreas.first;
         await _loadReservations();
+        await _loadAvailableSchedules();
+        await _loadAreaCapacity();
       }
     } catch (e) {
       setState(() {
@@ -82,93 +86,106 @@ class _ReservationScreenState extends State<ReservationScreen> {
 
     try {
       final reservationService = ReservationService(SupabaseService.client);
-
-      // Calcular rango de fechas para cargar reservas (mes actual)
-      final firstDay = DateTime(_focusedDay.year, _focusedDay.month, 1);
-      final lastDay = DateTime(_focusedDay.year, _focusedDay.month + 1, 0);
-
       _existingReservations = await reservationService
           .getReservationsByCommonAreaId(_selectedArea!.id);
-
-      // Filtrar por el rango de fechas
-      _existingReservations = _existingReservations.where((reservation) {
-        return reservation.startDate.isAfter(firstDay) &&
-            reservation.startDate.isBefore(lastDay);
-      }).toList();
+      
+      if (mounted) {
+        setState(() {});
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error al cargar reservas: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al cargar reservas: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _loadAvailableSchedules() async {
+    if (_selectedArea == null || _selectedDay == null) return;
+
+    try {
+      final scheduleService = AreaScheduleService(SupabaseService.client);
+      final weekdayNames = ['', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
+      final weekdayName = weekdayNames[_selectedDay!.weekday];
+      
+      _availableSchedules = await scheduleService.getSchedulesForWeekday(
+        _selectedArea!.id,
+        weekdayName,
       );
+      
+      // Reset selected schedule if it's not available anymore
+      if (_selectedSchedule != null && 
+          !_availableSchedules.any((s) => s.id == _selectedSchedule!.id)) {
+        _selectedSchedule = null;
+      }
+      
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al cargar horarios: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
-  Future<void> _selectStartTime() async {
-    final TimeOfDay? picked = await showTimePicker(
-      context: context,
-      initialTime: _startTime,
-    );
-    if (picked != null && picked != _startTime) {
-      setState(() {
-        _startTime = picked;
+  Future<void> _loadAreaCapacity() async {
+    if (_selectedArea == null) return;
 
-        // Asegurar que la hora de fin sea posterior a la hora de inicio
-        if (_timeToDouble(_endTime) <= _timeToDouble(_startTime)) {
-          _endTime = TimeOfDay(
-            hour: _startTime.hour + 1,
-            minute: _startTime.minute,
-          );
-        }
-      });
+    try {
+      final scheduleService = AreaScheduleService(SupabaseService.client);
+      _areaCapacity = await scheduleService.getAreaCapacity(_selectedArea!.id);
+      
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (e) {
+      // Capacity is optional, so we don't show an error
+      _areaCapacity = null;
     }
   }
 
-  Future<void> _selectEndTime() async {
-    final TimeOfDay? picked = await showTimePicker(
-      context: context,
-      initialTime: _endTime,
-    );
-    if (picked != null && picked != _endTime) {
-      setState(() {
-        if (_timeToDouble(picked) > _timeToDouble(_startTime)) {
-          _endTime = picked;
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content:
-                  Text('La hora de fin debe ser posterior a la hora de inicio'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      });
+  bool _hasUserReservationForDay() {
+    if (_selectedDay == null || _selectedArea == null || _currentUser == null) {
+      return false;
     }
+
+    return _existingReservations.any((reservation) {
+      return reservation.unitId == _currentUser!.unitId &&
+          reservation.commonAreaId == _selectedArea!.id &&
+          reservation.startDate.year == _selectedDay!.year &&
+          reservation.startDate.month == _selectedDay!.month &&
+          reservation.startDate.day == _selectedDay!.day;
+    });
   }
 
-  double _timeToDouble(TimeOfDay time) {
-    return time.hour + time.minute / 60.0;
-  }
-
-  bool _isTimeSlotAvailable() {
+  bool _isScheduleAvailable(AreaSchedule schedule) {
     if (_selectedDay == null || _selectedArea == null) return false;
 
-    // Crear fechas completas con la fecha seleccionada y las horas de inicio y fin
+    // Crear fechas completas con la fecha seleccionada y el horario del schedule
     final startDateTime = DateTime(
       _selectedDay!.year,
       _selectedDay!.month,
       _selectedDay!.day,
-      _startTime.hour,
-      _startTime.minute,
+      schedule.startTime.hour,
+      schedule.startTime.minute,
     );
 
     final endDateTime = DateTime(
       _selectedDay!.year,
       _selectedDay!.month,
       _selectedDay!.day,
-      _endTime.hour,
-      _endTime.minute,
+      schedule.endTime.hour,
+      schedule.endTime.minute,
     );
 
     // Verificar si hay conflictos con reservas existentes
@@ -186,17 +203,27 @@ class _ReservationScreenState extends State<ReservationScreen> {
   }
 
   Future<void> _createReservation() async {
-    if (_selectedDay == null || _selectedArea == null) {
+    if (_selectedDay == null || _selectedArea == null || _selectedSchedule == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Por favor selecciona un día y un área común'),
+          content: Text('Por favor selecciona un día, área común y horario'),
           backgroundColor: Colors.red,
         ),
       );
       return;
     }
 
-    if (!_isTimeSlotAvailable()) {
+    if (_hasUserReservationForDay()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Ya tienes una reserva para este día en esta área'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (!_isScheduleAvailable(_selectedSchedule!)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('El horario seleccionado no está disponible'),
@@ -211,39 +238,36 @@ class _ReservationScreenState extends State<ReservationScreen> {
     });
 
     try {
-      final authService = AuthService(SupabaseService.client);
-      final user = await authService.getCurrentUser();
-
-      if (user == null || user.unitId == null) {
-        throw Exception(
-            'Debes estar asociado a una unidad para hacer reservas');
+      if (_currentUser == null || _currentUser!.unitId == null) {
+        throw Exception('Debes estar asociado a una unidad para hacer reservas');
       }
 
-      // Crear fechas completas con la fecha seleccionada y las horas de inicio y fin
+      // Crear fechas completas con la fecha seleccionada y el horario del schedule
       final startDateTime = DateTime(
         _selectedDay!.year,
         _selectedDay!.month,
         _selectedDay!.day,
-        _startTime.hour,
-        _startTime.minute,
+        _selectedSchedule!.startTime.hour,
+        _selectedSchedule!.startTime.minute,
       );
 
       final endDateTime = DateTime(
         _selectedDay!.year,
         _selectedDay!.month,
         _selectedDay!.day,
-        _endTime.hour,
-        _endTime.minute,
+        _selectedSchedule!.endTime.hour,
+        _selectedSchedule!.endTime.minute,
       );
 
       // Crear la reserva
       final reservation = Reservation(
-        id: 0, // El ID será asignado por la base de datos (SERIAL)
-        unitId: user.unitId!, // Convertir String a entero
-        commonAreaId: _selectedArea!.id, // Ya es un entero
+        id: 0,
+        unitId: _currentUser!.unitId!,
+        commonAreaId: _selectedArea!.id,
         startDate: startDateTime,
         endDate: endDateTime,
-        status: 'pendiente', // Las reservas se crean con estado pendiente
+        status: 'pendiente',
+        people: _selectedPeople,
       );
 
       final reservationService = ReservationService(SupabaseService.client);
@@ -252,14 +276,17 @@ class _ReservationScreenState extends State<ReservationScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content:
-                Text('Reserva creada exitosamente. Pendiente de aprobación.'),
+            content: Text('Reserva creada exitosamente. Pendiente de aprobación.'),
             backgroundColor: Colors.green,
           ),
         );
 
-        // Recargar reservas
+        // Recargar datos
         await _loadReservations();
+        await _loadAvailableSchedules();
+        
+        // Reset selections
+        _selectedSchedule = null;
       }
     } catch (e) {
       if (mounted) {
@@ -288,9 +315,11 @@ class _ReservationScreenState extends State<ReservationScreen> {
     }).toList();
   }
 
-  // Función para manejar la creación de reserva
   void _handleCreateReservation() {
-    if (_isTimeSlotAvailable() && !_isLoading) {
+    if (_selectedSchedule != null && 
+        _isScheduleAvailable(_selectedSchedule!) && 
+        !_isLoading &&
+        !_hasUserReservationForDay()) {
       _createReservation();
     }
   }
@@ -359,8 +388,11 @@ class _ReservationScreenState extends State<ReservationScreen> {
                         onChanged: (value) {
                           setState(() {
                             _selectedArea = value;
+                            _selectedSchedule = null;
                           });
                           _loadReservations();
+                          _loadAvailableSchedules();
+                          _loadAreaCapacity();
                         },
                       ),
                       const SizedBox(height: 24),
@@ -394,7 +426,9 @@ class _ReservationScreenState extends State<ReservationScreen> {
                               setState(() {
                                 _selectedDay = selectedDay;
                                 _focusedDay = focusedDay;
+                                _selectedSchedule = null;
                               });
+                              _loadAvailableSchedules();
                             },
                             onPageChanged: (focusedDay) {
                               _focusedDay = focusedDay;
@@ -418,66 +452,109 @@ class _ReservationScreenState extends State<ReservationScreen> {
                       ),
                       const SizedBox(height: 24),
 
-                      // Selector de horas
+                      // Selector de horarios disponibles
                       const Text(
-                        'Selecciona el horario',
+                        'Selecciona un horario disponible',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: InkWell(
-                              onTap: _selectStartTime,
-                              child: InputDecorator(
-                                decoration: InputDecoration(
-                                  labelText: 'Hora de inicio',
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 16, vertical: 8),
+                      if (_availableSchedules.isEmpty && _selectedDay != null)
+                        const Card(
+                          child: Padding(
+                            padding: EdgeInsets.all(16.0),
+                            child: Text(
+                              'No hay horarios disponibles para este día',
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                          ),
+                        )
+                      else
+                        Wrap(
+                          spacing: 8.0,
+                          runSpacing: 8.0,
+                          children: _availableSchedules.map((schedule) {
+                            final isAvailable = _isScheduleAvailable(schedule);
+                            final isSelected = _selectedSchedule?.id == schedule.id;
+                            
+                            return ChoiceChip(
+                              label: Text(
+                                '${schedule.startTime.format(context)} - ${schedule.endTime.format(context)}',
+                                style: TextStyle(
+                                  color: isAvailable 
+                                    ? (isSelected ? Colors.white : Colors.black87)
+                                    : Colors.grey,
                                 ),
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(_startTime.format(context)),
-                                    const Icon(Icons.access_time),
-                                  ],
+                              ),
+                              selected: isSelected,
+                              onSelected: isAvailable ? (selected) {
+                                setState(() {
+                                  _selectedSchedule = selected ? schedule : null;
+                                });
+                              } : null,
+                              selectedColor: Colors.deepPurple,
+                              backgroundColor: isAvailable ? null : Colors.grey.shade200,
+                              disabledColor: Colors.grey.shade200,
+                            );
+                          }).toList(),
+                        ),
+                      const SizedBox(height: 16),
+
+                      // Selector de número de personas
+                      if (_areaCapacity != null) ...[
+                        const Text(
+                          'Número de personas',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            IconButton(
+                              onPressed: _selectedPeople > 1 ? () {
+                                setState(() {
+                                  _selectedPeople--;
+                                });
+                              } : null,
+                              icon: const Icon(Icons.remove_circle_outline),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.grey),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                '$_selectedPeople',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: InkWell(
-                              onTap: _selectEndTime,
-                              child: InputDecorator(
-                                decoration: InputDecoration(
-                                  labelText: 'Hora de fin',
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 16, vertical: 8),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(_endTime.format(context)),
-                                    const Icon(Icons.access_time),
-                                  ],
-                                ),
-                              ),
+                            IconButton(
+                              onPressed: _selectedPeople < _areaCapacity!.maxPeople ? () {
+                                setState(() {
+                                  _selectedPeople++;
+                                });
+                              } : null,
+                              icon: const Icon(Icons.add_circle_outline),
                             ),
-                          ),
-                        ],
-                      ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Máx: ${_areaCapacity!.maxPeople}',
+                              style: const TextStyle(color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                      ],
                       const SizedBox(height: 24),
 
                       // Resumen de la reserva
@@ -506,17 +583,24 @@ class _ReservationScreenState extends State<ReservationScreen> {
                                     'Fecha',
                                     DateFormat('dd/MM/yyyy')
                                         .format(_selectedDay!)),
-                                _buildReservationDetail('Horario',
-                                    '${_startTime.format(context)} - ${_endTime.format(context)}'),
-                                _buildReservationDetail(
-                                  'Disponibilidad',
-                                  _isTimeSlotAvailable()
-                                      ? 'Disponible'
-                                      : 'No disponible (conflicto con otra reserva)',
-                                  color: _isTimeSlotAvailable()
-                                      ? Colors.green
-                                      : Colors.red,
-                                ),
+                                if (_selectedSchedule != null) ...[
+                                  _buildReservationDetail('Horario',
+                                      '${_selectedSchedule!.startTime.format(context)} - ${_selectedSchedule!.endTime.format(context)}'),
+                                  _buildReservationDetail('Personas', '$_selectedPeople'),
+                                  _buildReservationDetail(
+                                    'Disponibilidad',
+                                    _isScheduleAvailable(_selectedSchedule!)
+                                        ? 'Disponible'
+                                        : 'No disponible',
+                                    color: _isScheduleAvailable(_selectedSchedule!)
+                                        ? Colors.green
+                                        : Colors.red,
+                                  ),
+                                ] else
+                                  const Text(
+                                    'Selecciona un horario para ver el resumen',
+                                    style: TextStyle(color: Colors.grey),
+                                  ),
                               ],
                             ),
                           ),
@@ -527,7 +611,10 @@ class _ReservationScreenState extends State<ReservationScreen> {
                       CustomButton(
                         text: 'Crear Reserva',
                         icon: Icons.calendar_today,
-                        onPressed: _isTimeSlotAvailable() && !_isLoading
+                        onPressed: (_selectedSchedule != null && 
+                                   _isScheduleAvailable(_selectedSchedule!) && 
+                                   !_isLoading &&
+                                   !_hasUserReservationForDay())
                             ? _handleCreateReservation
                             : null,
                         isLoading: _isLoading,
